@@ -1,0 +1,26 @@
+name: Le Frigo
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm run check && npm test
+      - run: docker compose config --quiet
+      - run: docker build -t le-frigo-api .
+      - run: docker build -t le-frigo-web -f Dockerfile.frontend .
+      - name: Verify running services
+        run: |
+          docker compose -f docker-compose.yml -f compose.local.yaml up --build --wait --wait-timeout 120
+          curl --fail --retry 5 --retry-delay 2 http://127.0.0.1:8088/api/health
+      - name: Stop test services
+        if: always()
+        run: docker compose -f docker-compose.yml -f compose.local.yaml down
