@@ -8,6 +8,9 @@ services:
       - lefrigo_sqlite:/data
     environment:
       SECURE_COOKIES: ${SECURE_COOKIES:-false}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_MODEL: ${GEMINI_MODEL:-gemini-2.5-flash-lite}
+      AI_DAILY_LIMIT: ${AI_DAILY_LIMIT:-10}
     healthcheck:
       test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:8080/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
       interval: 30s

@@ -1,4 +1,154 @@
 @import url("/fonts.css");
+.catalog-toggle {
+  margin-bottom: 18px;
+}
+.category-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  margin-bottom: 16px;
+}
+.category-choice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 3px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 10px;
+}
+.category-choice:hover {
+  background: var(--soft);
+}
+.category-icon {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 38px;
+  height: 38px;
+  border-radius: 7px;
+  background-image: url("/images/ingredients.webp");
+  background-size: 400% 300%;
+  background-repeat: no-repeat;
+  background-color: #f5eee4;
+}
+.category-0 {
+  background-position: 0 0;
+}
+.category-1 {
+  background-position: 33.333% 0;
+}
+.category-2 {
+  background-position: 66.667% 0;
+}
+.category-3 {
+  background-position: 100% 0;
+}
+.category-4 {
+  background-position: 0 50%;
+}
+.category-5 {
+  background-position: 33.333% 50%;
+}
+.category-6 {
+  background-position: 66.667% 50%;
+}
+.category-7 {
+  background-position: 100% 50%;
+}
+.category-8 {
+  background-position: 0 100%;
+}
+.category-9 {
+  background-position: 33.333% 100%;
+}
+.category-10 {
+  background-position: 66.667% 100%;
+}
+.category-11 {
+  background-position: 100% 100%;
+}
+.suggestions button {
+  display: flex !important;
+  gap: 9px;
+  align-items: center;
+}
+.suggestions .category-icon {
+  width: 28px;
+  height: 28px;
+}
+.suggestions .custom-add {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--red);
+  background: var(--soft);
+}
+.ai-panel {
+  padding: 23px;
+  margin-bottom: 28px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--soft);
+  display: flex;
+  gap: 22px;
+  align-items: center;
+  justify-content: space-between;
+}
+.ai-panel h3 {
+  font-size: 29px;
+  margin: 0 0 10px;
+}
+.ai-panel p:not(.eyebrow) {
+  font-size: 13px;
+  line-height: 1.6;
+  margin: 5px 0;
+}
+.ai-panel .eyebrow {
+  font-size: 10px;
+}
+.ai-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  flex-shrink: 0;
+}
+.ai-buttons .text-link {
+  font-size: 11px;
+}
+.food.food-ai {
+  background-image: none;
+  background-color: var(--soft);
+  color: var(--muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-size: 12px;
+}
+.ai-dish-mark {
+  font-size: 56px;
+  color: var(--red);
+}
+.ai-detail-label {
+  padding: 22px 30px;
+  background: var(--soft);
+  color: var(--red);
+  font-size: 13px;
+  font-weight: bold;
+}
+@media (max-width: 900px) {
+  .ai-panel {
+    align-items: start;
+    flex-direction: column;
+  }
+  .ai-buttons {
+    align-items: start;
+  }
+  .ai-panel h3 {
+    font-size: 26px;
+  }
+}
 :root {
   --bg: #faf7f2;
   --paper: #fffdf9;

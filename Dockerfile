@@ -1,7 +1,7 @@
 FROM node:24-alpine
 WORKDIR /app
 ENV NODE_ENV=production PORT=8080 DB_PATH=/data/frigo.sqlite
-COPY --chown=node:node package.json server.mjs recipes.mjs ./
+COPY --chown=node:node package.json server.mjs recipes.mjs catalog.mjs gemini.mjs ./
 COPY --chown=node:node public ./public
 RUN mkdir -p /data && chown node:node /data
 USER node

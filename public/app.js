@@ -10,6 +10,9 @@ const escape = (s) =>
 const state = {
   user: null,
   ingredients: [],
+  categories: [],
+  category: "",
+  ai: {},
   pantry: [],
   recipes: [],
   favorites: [],
@@ -76,6 +79,10 @@ async function refresh() {
     api("/groceries"),
   ]);
   [state.pantry, state.recipes, state.favorites, state.groceries] = data;
+  [state.ingredients, state.ai] = await Promise.all([
+    api("/ingredients"),
+    api("/ai/status"),
+  ]);
   render();
 }
 function render() {
@@ -121,7 +128,7 @@ function render() {
     (r) => !state.query || r.ingredients.some((i) => i.id === state.query),
   );
   $("#app").innerHTML =
-    `<div class="workspace"><aside class="pantry" aria-label="Mon frigo"><div class="pantry-head"><h2>Dans mon frigo</h2><span class="count">${state.pantry.length} ingrédients</span></div><div class="search"><input id="ingredient-search" placeholder="Ajouter un ingrédient…" aria-label="Rechercher un ingrédient" autocomplete="off" aria-controls="suggestions"></div><div id="suggestions"></div><div>${state.pantry.length ? state.pantry.map(pantryRow).join("") : '<p class="helper">Ajoute ton premier ingrédient pour commencer.</p>'}</div><p class="helper">Clique sur un ingrédient pour préciser sa quantité ou sa date.</p><div class="pantry-bottom"><h3>J’ai combien de temps ?</h3><div class="pills">${[
+    `<div class="workspace"><aside class="pantry" aria-label="Mon frigo"><div class="pantry-head"><h2>Dans mon frigo</h2><span class="count">${state.pantry.length} ingrédient${state.pantry.length > 1 ? "s" : ""}</span></div><button class="catalog-toggle text-link" data-action="browse">Explorer les familles ↗</button><div id="category-browser"></div><div class="search"><input id="ingredient-search" placeholder="Ajouter un ingrédient…" aria-label="Rechercher un ingrédient" autocomplete="off" aria-controls="suggestions"></div><div id="suggestions"></div><div>${state.pantry.length ? state.pantry.map(pantryRow).join("") : '<p class="helper">Ajoute ton premier ingrédient pour commencer.</p>'}</div><p class="helper">Clique sur un ingrédient pour préciser sa quantité ou sa date.</p><div class="pantry-bottom"><h3>J’ai combien de temps ?</h3><div class="pills">${[
       [15, "15 min"],
       [30, "30 min"],
       [0, "Peu importe"],
@@ -132,7 +139,7 @@ function render() {
       )
       .join(
         "",
-      )}</div><button class="primary wide" data-action="find">Trouver mes recettes →</button><p class="tagline">Moins de gaspillage, plus de bonnes idées.</p></div></aside><section class="results"><div class="results-head"><div><h2>${state.query ? "Une bonne idée à sauver." : "Tu as déjà de quoi te régaler."}</h2><p>${list.length} recettes selon tes ingrédients · huile, sel et poivre du placard.</p></div><div class="pills"><button class="pill ${!state.vegetarian ? "active" : ""}" data-filter="all" aria-pressed="${!state.vegetarian}">Tout</button><button class="pill ${state.vegetarian ? "active" : ""}" data-filter="vegetarian" aria-pressed="${state.vegetarian}">Végétarien</button>${state.query ? '<button class="pill" data-action="clear-query">Tout voir ×</button>' : ""}</div></div>${list.length ? `<div class="recipe-grid">${list.slice(0, state.limit).map(card).join("")}</div>${list.length > state.limit ? '<div class="more"><button class="secondary" data-action="more">Encore de bonnes idées ↓</button></div>' : ""}` : empty("Aucune recette pour ces critères.", "Essaie une autre durée ou retire le filtre végétarien.", "Réinitialiser les filtres", "reset-filters")}${antiwaste()}</section></div>`;
+      )}</div><button class="primary wide" data-action="find">Trouver mes recettes →</button><p class="tagline">Moins de gaspillage, plus de bonnes idées.</p></div></aside><section class="results">${aiPanel()}<div class="results-head"><div><h2>${state.query ? "Une bonne idée à sauver." : "Tu as déjà de quoi te régaler."}</h2><p>${list.length} recettes selon tes ingrédients · huile, sel et poivre du placard.</p></div><div class="pills"><button class="pill ${!state.vegetarian ? "active" : ""}" data-filter="all" aria-pressed="${!state.vegetarian}">Tout</button><button class="pill ${state.vegetarian ? "active" : ""}" data-filter="vegetarian" aria-pressed="${state.vegetarian}">Végétarien</button>${state.query ? '<button class="pill" data-action="clear-query">Tout voir ×</button>' : ""}</div></div>${list.length ? `<div class="recipe-grid">${list.slice(0, state.limit).map(card).join("")}</div>${list.length > state.limit ? '<div class="more"><button class="secondary" data-action="more">Encore de bonnes idées ↓</button></div>' : ""}` : empty("Aucune recette pour ces critères.", "Essaie une autre durée ou retire le filtre végétarien.", "Réinitialiser les filtres", "reset-filters")}${antiwaste()}</section></div>`;
 }
 function empty(title, description, label, action) {
   return `<div class="empty"><h2>${escape(title)}</h2><p>${escape(description)}</p><button class="secondary" data-action="${action}">${escape(label)}</button></div>`;
@@ -149,11 +156,11 @@ function pantryRow(p) {
       ? "Date dépassée · exclu des recettes"
       : `À consommer avant le ${new Date(date + "T12:00:00").toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}`
     : "";
-  return `<div class="ingredient"><span class="ingredient-emoji" aria-hidden="true">${i.emoji}</span><button class="ingredient-edit" data-edit="${i.id}"><strong>${escape(i.name)}</strong>${p.quantity ? `<small>${escape(p.quantity)}</small>` : ""}${date ? `<small class="${soon ? "expiring" : ""}">${escape(exp)}</small>` : ""}</button><button class="remove" data-remove="${i.id}" aria-label="Retirer ${escape(i.name)}">×</button></div>`;
+  return `<div class="ingredient">${categoryIcon(i.category)}<button class="ingredient-edit" data-edit="${i.id}"><strong>${escape(i.name)}</strong>${p.quantity ? `<small>${escape(p.quantity)}</small>` : ""}${date ? `<small class="${soon ? "expiring" : ""}">${escape(exp)}</small>` : ""}</button><button class="remove" data-remove="${i.id}" aria-label="Retirer ${escape(i.name)}">×</button></div>`;
 }
 function card(r) {
   const liked = state.favorites.includes(r.id);
-  return `<article class="recipe-card"><button class="food food-${r.image}" data-recipe="${r.id}" aria-label="Voir ${escape(r.title)}"></button><button class="favorite" data-favorite="${r.id}" aria-label="${liked ? "Retirer des" : "Ajouter aux"} favoris : ${escape(r.title)}" aria-pressed="${liked}">${liked ? "♥" : "♡"}</button><div class="card-body"><p class="availability ${r.missing.length ? "missing" : ""}">${r.missing.length ? `Il manque ${r.missing.length} ingrédient${r.missing.length > 1 ? "s" : ""}` : "Tu as tout !"}</p><h3>${escape(r.title)}</h3><p class="recipe-meta">${r.time} min · ${r.difficulty}${r.vegetarian ? " · Végé" : ""}</p><button class="text-link" data-recipe="${r.id}">Voir la recette ↗</button></div></article>`;
+  return `<article class="recipe-card"><button class="food ${r.source === "gemini" ? "food-ai" : "food-" + r.image}" data-recipe="${r.id}" aria-label="Voir ${escape(r.title)}">${r.source === "gemini" ? '<span class="ai-dish-mark">✦</span><span>Une idée pour ton frigo</span>' : ""}</button><button class="favorite" data-favorite="${r.id}" aria-label="${liked ? "Retirer des" : "Ajouter aux"} favoris : ${escape(r.title)}" aria-pressed="${liked}">${liked ? "♥" : "♡"}</button><div class="card-body"><p class="availability ${r.missing.length ? "missing" : ""}">${r.source === "gemini" ? "✦ Gemini · " : ""}${r.missing.length ? `Il manque ${r.missing.length} ingrédient${r.missing.length > 1 ? "s" : ""}` : "Tu as tout !"}</p><h3>${escape(r.title)}</h3><p class="recipe-meta">${r.time} min · ${r.difficulty}${r.vegetarian ? " · Végé" : ""}</p><button class="text-link" data-recipe="${r.id}">Voir la recette ↗</button></div></article>`;
 }
 function antiwaste() {
   const dated = state.pantry
@@ -184,7 +191,7 @@ function detail(id) {
   const r = state.recipes.find((r) => r.id === id);
   if (!r) return;
   open(
-    `<div class="food food-${r.image} dialog-food" role="img" aria-label="${escape(r.title)}"></div><div class="dialog-inner detail">${modalHead(r.title)}<div class="detail-meta"><span>${r.time} min</span><span>${r.servings} personnes</span><span>${r.difficulty}</span></div><p class="helper">Photos d’ambiance culinaire : certains plats partagent une illustration.</p><h3>Sur le plan de travail</h3>${r.ingredients.map((i) => `<div class="ingredient-line ${available(i.id) ? "" : "missing"}"><span>${available(i.id) ? "✓" : "+"} ${escape(ingredient(i.id).name)}</span><span>${escape(i.quantity)}</span></div>`).join("")}<p class="helper">Prévois aussi de l’huile d’olive, du sel et du poivre. Vérifie les étiquettes et les allergènes des produits utilisés.</p>${r.missing.length ? `<button class="secondary" data-missing="${r.id}">+ Ajouter ${r.missing.length} ingrédient${r.missing.length > 1 ? "s" : ""} aux courses</button>` : ""}<h3>À toi de jouer</h3>${r.steps.map((s, index) => `<div class="step"><span class="step-number">${index + 1}</span><span>${escape(s)}</span></div>`).join("")}<div class="dialog-actions"><button class="primary" data-cook="${r.id}" data-step="0">Commencer à cuisiner →</button><button class="secondary" data-favorite="${r.id}">${state.favorites.includes(r.id) ? "♥ Recette enregistrée" : "♡ Garder cette recette"}</button></div></div>`,
+    `${r.source === "gemini" ? '<div class="ai-detail-label">✦ Recette proposée par Gemini</div>' : `<div class="food food-${r.image} dialog-food" role="img" aria-label="${escape(r.title)}"></div>`}<div class="dialog-inner detail">${modalHead(r.title)}<div class="detail-meta"><span>${r.time} min</span><span>${r.servings} personnes</span><span>${r.difficulty}</span></div><p class="helper">${r.source === "gemini" ? "Vérifie les quantités et les cuissons avant de commencer. L’illustration de ce plat sera ajoutée plus tard." : "Photos d’ambiance culinaire : certains plats partagent une illustration."}</p><h3>Sur le plan de travail</h3>${r.ingredients.map((i) => `<div class="ingredient-line ${available(i.id) ? "" : "missing"}"><span>${available(i.id) ? "✓" : "+"} ${escape(ingredient(i.id).name)}</span><span>${escape(i.quantity)}</span></div>`).join("")}<p class="helper">Prévois aussi de l’huile d’olive, du sel et du poivre. Vérifie les étiquettes et les allergènes des produits utilisés.</p>${r.missing.length ? `<button class="secondary" data-missing="${r.id}">+ Ajouter ${r.missing.length} ingrédient${r.missing.length > 1 ? "s" : ""} aux courses</button>` : ""}<h3>À toi de jouer</h3>${r.steps.map((s, index) => `<div class="step"><span class="step-number">${index + 1}</span><span>${escape(s)}</span></div>`).join("")}<div class="dialog-actions"><button class="primary" data-cook="${r.id}" data-step="0">Commencer à cuisiner →</button><button class="secondary" data-favorite="${r.id}">${state.favorites.includes(r.id) ? "♥ Recette enregistrée" : "♡ Garder cette recette"}</button></div></div>`,
   );
 }
 function cook(id, index) {
@@ -215,6 +222,54 @@ document.addEventListener("click", async (e) => {
   if (!b) return;
   try {
     if (b.dataset.page) return await navigate(b.dataset.page);
+    if (b.dataset.category !== undefined) {
+      state.category = b.dataset.category;
+      showSuggestions($("#ingredient-search").value);
+      return;
+    }
+    if (b.dataset.action === "browse") {
+      const target = $("#category-browser");
+      if (target.innerHTML) {
+        target.innerHTML = "";
+        state.category = "";
+        return;
+      }
+      target.innerHTML = `<div class="category-grid"><button class="category-choice" data-category="all">Tout explorer</button>${state.categories.map((c) => `<button class="category-choice" data-category="${c.id}">${categoryIcon(c.id)}<span>${escape(c.name)}</span></button>`).join("")}</div>`;
+      showSuggestions("");
+      return;
+    }
+    if (b.dataset.action === "custom-ingredient") {
+      return customIngredient($("#ingredient-search").value);
+    }
+    if (b.dataset.action === "generate") {
+      if (!state.user) return auth();
+      b.disabled = true;
+      b.textContent = "Une idée mijote…";
+      try {
+        const generated = await api("/ai/generate", {
+          method: "POST",
+          body: {
+            time: state.time,
+            vegetarian: state.vegetarian,
+            fresh: b.dataset.fresh === "true",
+          },
+        });
+        state.time = 0;
+        state.vegetarian = false;
+        state.query = "";
+        await refresh();
+        detail(generated.id);
+        toast(
+          generated.cached
+            ? "Ta recette est déjà prête, aucun nouvel appel utilisé."
+            : "Une nouvelle recette est prête !",
+        );
+      } finally {
+        b.disabled = false;
+        if (b.isConnected) b.textContent = "Créer une recette ✦";
+      }
+      return;
+    }
     if (b.id === "theme") {
       const dark = document.documentElement.dataset.theme !== "dark";
       document.documentElement.dataset.theme = dark ? "dark" : "light";
@@ -403,19 +458,19 @@ document.addEventListener("click", async (e) => {
     b.disabled = false;
   }
 });
-document.addEventListener("input", (e) => {
-  if (e.target.id !== "ingredient-search") return;
-  const q = e.target.value
+function showSuggestions(value) {
+  const q = value
     .trim()
     .toLocaleLowerCase("fr")
     .normalize("NFD")
     .replace(/\p{Diacritic}/gu, "");
-  if (!q) {
+  if (!q && !state.category) {
     $("#suggestions").innerHTML = "";
     return;
   }
   const matches = state.ingredients.filter(
     (i) =>
+      (!state.category || state.category === 'all' || i.category === state.category) &&
       !state.pantry.some((p) => p.ingredient_id === i.id) &&
       i.name
         .toLocaleLowerCase("fr")
@@ -426,14 +481,17 @@ document.addEventListener("input", (e) => {
   $("#suggestions").innerHTML = `<div class="suggestions">${
     matches.length
       ? matches
-          .slice(0, 8)
+          .slice(0, 300)
           .map(
             (i) =>
-              `<button data-add="${i.id}">${i.emoji} ${escape(i.name)} <span aria-hidden="true">+</span></button>`,
+              `<button data-add="${i.id}">${categoryIcon(i.category)} ${escape(i.name)} <span aria-hidden="true">+</span></button>`,
           )
           .join("")
-      : '<p class="helper">Aucun ingrédient à ajouter dans ce catalogue.</p>'
-  }</div>`;
+      : '<p class="helper">Aucun produit correspondant dans cette famille.</p>'
+  }${q.length >= 2 ? `<button class="custom-add" data-action="custom-ingredient">+ Ajouter « ${escape(value.trim())} » comme produit personnel</button>` : ""}</div>`;
+}
+document.addEventListener("input", (e) => {
+  if (e.target.id === "ingredient-search") showSuggestions(e.target.value);
 });
 document.addEventListener("change", async (e) => {
   if (!e.target.dataset.check) return;
@@ -449,7 +507,11 @@ document.addEventListener("change", async (e) => {
   }
 });
 document.addEventListener("submit", async (e) => {
-  if (!["auth-form", "ingredient-form", "grocery-form"].includes(e.target.id))
+  if (
+    !["auth-form", "ingredient-form", "grocery-form", "custom-form"].includes(
+      e.target.id,
+    )
+  )
     return;
   e.preventDefault();
   const form = e.target,
@@ -457,6 +519,16 @@ document.addEventListener("submit", async (e) => {
   if (b) b.disabled = true;
   const data = Object.fromEntries(new FormData(form));
   try {
+    if (form.id === "custom-form") {
+      const product = await api("/ingredients", { method: "POST", body: data });
+      await api("/pantry", {
+        method: "POST",
+        body: { ingredient_id: product.id },
+      });
+      await refresh();
+      close();
+      toast("Produit ajouté à ton frigo.");
+    }
     if (form.id === "auth-form") {
       state.user = await api("/auth/" + state.auth, {
         method: "POST",
@@ -511,7 +583,10 @@ async function init() {
       "aria-label",
       theme === "dark" ? "Passer au mode clair" : "Passer au mode sombre",
     );
-    state.ingredients = await api("/ingredients");
+    [state.ingredients, state.categories] = await Promise.all([
+      api("/ingredients"),
+      api("/categories"),
+    ]);
     try {
       state.user = await api("/auth/me");
     } catch (error) {
@@ -531,4 +606,20 @@ async function init() {
       ?.addEventListener("click", init);
   }
 }
+
+function categoryIcon(id) {
+  const c =
+    state.categories.find((c) => c.id === id) || state.categories.at(-1);
+  return `<span class="category-icon category-${c?.image ?? 11}" aria-hidden="true"></span>`;
+}
+function aiPanel() {
+  return `<section class="ai-panel"><div><p class="eyebrow">UNE IDÉE RIEN QUE POUR TOI</p><h3>Et si on cuisinait autrement ?</h3><p>Une recette pour deux, à partir de tes ingrédients et de tes préférences.</p><p class="helper">${state.ai.configured ? `${state.ai.remaining ?? 0} essai(s) disponible(s) aujourd’hui pour le site. Les recettes enregistrées restent consultables.` : "La création personnalisée sera bientôt disponible. Explore déjà les recettes du carnet."}</p></div><div class="ai-buttons"><button class="primary" data-action="generate" ${!state.ai.configured ? "disabled" : ""}>Créer une recette ✦</button>${state.ai.configured ? '<button class="text-link" data-action="generate" data-fresh="true">Essayer une autre idée ↗</button>' : ""}</div></section>`;
+}
+function customIngredient(name) {
+  open(
+    `<div class="dialog-inner">${modalHead("Un produit à toi.")}<p class="auth-intro">Le catalogue ne contient pas tout ? Ajoute ton ingrédient : il sera disponible dans tes recherches et tes recettes.</p><form id="custom-form"><label class="field-label" for="custom-name">Nom du produit</label><input id="custom-name" name="name" required maxlength="80" value="${escape(name)}"><label class="field-label" for="custom-category">Famille</label><select id="custom-category" name="category">${state.categories.map((c) => `<option value="${c.id}" ${c.id === (state.category && state.category !== "all" ? state.category : "other") ? "selected" : ""}>${escape(c.name)}</option>`).join("")}</select><p class="error" id="form-error" role="alert"></p><button class="primary wide auth-submit">Ajouter à mon frigo →</button></form></div>`,
+  );
+}
+
 init();
+

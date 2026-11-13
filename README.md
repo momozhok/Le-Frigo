@@ -37,8 +37,9 @@ Le volume `lefrigo_sqlite` conserve les données lors des redéploiements. Ne pa
 ## Fonctionnalités
 
 - Inscription, connexion et déconnexion ; sessions de sept jours dans un cookie HttpOnly, mots de passe dérivés avec scrypt et sel aléatoire.
-- 27 ingrédients, quantités libres et dates facultatives. Les dates dépassées sont signalées et exclues des ingrédients disponibles pour les suggestions.
+- 288 ingrédients répartis dans 12 familles illustrées, ajout libre de produits personnels, quantités libres et dates facultatives. Les dates dépassées sont signalées et exclues des ingrédients disponibles pour les suggestions.
 - 12 recettes intégrées : classement selon les ingrédients manquants, durée et filtre végétarien. Aucune API payante nécessaire.
+- Recettes personnalisées avec Gemini 2.5 Flash-Lite, en option : dix appels maximum par jour pour tout le site, validation des réponses et réutilisation sans appel supplémentaire. [Configuration Gemini](docs/gemini.md).
 - Bouton surprise privilégiant les recettes réalisables avec les ingrédients disponibles.
 - Favoris personnels et courses avec ajout des ingrédients manquants, cases à cocher, suppression et copie.
 - Fiches pour deux personnes, étapes guidées et minuteur tant que la page reste ouverte.
@@ -64,6 +65,10 @@ Les écritures acceptent du JSON, même les DELETE/PUT sans champs (`{}`). Les r
 | GET | `/api/auth/me` | Compte connecté |
 | POST | `/api/auth/logout` | Invalider la session courante |
 | GET | `/api/ingredients` | Catalogue public |
+| POST | `/api/ingredients` | Ajouter un produit personnel `{name,category}` |
+| GET | `/api/categories` | Les 12 familles et leurs illustrations |
+| GET | `/api/ai/status` | Disponibilité et quota global restant, sans secret |
+| POST | `/api/ai/generate` | `{time,vegetarian,fresh}` : créer une recette ou réutiliser le résultat enregistré |
 | GET, POST | `/api/pantry` | Lire ou enregistrer `{ingredient_id,quantity,expires}` |
 | DELETE | `/api/pantry/:id` | Retirer un ingrédient |
 | GET | `/api/recipes?time=30&vegetarian=true&q=pâtes` | Recettes classées |
@@ -84,5 +89,8 @@ Le serveur utilise un processus Node.js avec SQLite. Le plafond de tentatives de
 - `DB_PATH` : fichier SQLite, `/data/frigo.sqlite` dans Docker.
 - `SECURE_COOKIES` : `true` sur HTTPS ; `false` pour localhost HTTP.
 - `FRIGO_PORT` : port publié par la surcharge Compose locale, 8088 par défaut.
+- `GEMINI_API_KEY` : clé Gemini côté serveur uniquement ; optionnelle pour les recettes intégrées.
+- `GEMINI_MODEL` : `gemini-2.5-flash-lite` par défaut, modifiable.
+- `AI_DAILY_LIMIT` : plafond global d’appels par jour UTC, 10 par défaut et au maximum.
 
 Aucun secret ni compte de test n’est livré dans Git. Les données locales ne sont pas incluses dans le dépôt.

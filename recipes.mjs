@@ -259,9 +259,11 @@ export const recipes = [
 export function matchRecipes(
   pantry,
   { time = 0, vegetarian = false, q = "" } = {},
+  source = recipes,
+  dictionary = ingredients,
 ) {
   const ids = new Set(pantry.map((i) => i.ingredient_id));
-  return recipes
+  return source
     .filter(
       (r) =>
         (!time || r.time <= time) &&
@@ -274,7 +276,7 @@ export function matchRecipes(
         .filter((i) => !ids.has(i.id))
         .map((i) => ({
           ...i,
-          name: ingredients.find((x) => x.id === i.id).name,
+          name: dictionary.find((x) => x.id === i.id)?.name || i.id,
         })),
       matched: r.ingredients.filter((i) => ids.has(i.id)).length,
     }))
